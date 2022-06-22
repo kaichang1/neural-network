@@ -6,10 +6,9 @@ layers of the network.
 
 from __future__ import annotations
 from typing import TypeVar
-from enum import Enum
 
 from NNData import NNData
-from FFBPNeurode import MultiLinkNode, FFBPNeurode
+from FFBPNeurode import MultiLinkNode, FFBPNeurode, LayerType
 
 T = TypeVar('T')
 
@@ -93,8 +92,12 @@ class DoublyLinkedList:
             raise DoublyLinkedList.EmptyListError
         ret_val = self._head.data
         self._head = self._head.next
-        self._head.prev = None
-        self.reset_to_head()
+        if self._head:
+            self._head.prev = None
+            self.reset_to_head()
+        else:
+            self._tail = None
+            self._cur = None
         return ret_val
 
     def add_after_cur(self, data: T):
@@ -121,7 +124,7 @@ class DoublyLinkedList:
         Returns:
             T: data value of removed node
         """
-        if self._cur is None:
+        if self._head is None:
             raise DoublyLinkedList.EmptyListError
         if self._cur.next is None:
             raise IndexError
@@ -163,7 +166,7 @@ class DoublyLinkedList:
         Returns:
             T: data value of new current node
         """
-        if self._cur is None:
+        if self._head is None:
             raise DoublyLinkedList.EmptyListError
         if self._cur.next is None:
             raise IndexError
@@ -176,7 +179,7 @@ class DoublyLinkedList:
         Returns:
             T: data value of new current node
         """
-        if self._cur is None:
+        if self._head is None:
             raise DoublyLinkedList.EmptyListError
         if self._cur.prev is None:
             raise IndexError
@@ -256,7 +259,7 @@ class LayerList(DoublyLinkedList):
         self.add_after_cur(hidden_neurodes)
 
     def remove_layer(self):
-        """Remove neural network layer after current layer node."""
+        """Remove neural network hidden layer after current layer node."""
         if self._cur.next == self._tail:
             raise IndexError
         self.remove_after_cur()
@@ -304,6 +307,7 @@ class FFBPNetwork:
                 after the input layer. Each integer increment above 0
                 moves the hidden layer one layer forward.
         """
+        self._network.reset_to_head()
         for i in range(position):
             self._network.move_forward()
         self._network.add_layer(num_nodes)
@@ -321,7 +325,8 @@ class FFBPNetwork:
             verbosity (int): specifies reporting frequency:
                 0: no reports made
                 1: RMSE of most recent epoch reported every 100 epochs
-                2: print out all input, expected, and output values
+                2: RMSE of most recent epoch reported every 100 epochs
+                    and print out all input, expected, and output values
                     for every training example every 1000 epochs
             order (NNData.Order): random or sequential ordering
         """
@@ -335,9 +340,13 @@ class FFBPNetwork:
             while not data_set.pool_is_empty(NNData.Set.TRAIN):
                 feature_label = data_set.get_one_item(NNData.Set.TRAIN)
 
+                # Use features as inputs to input layer neurodes and
+                # begin feedforward process
                 for i in range(len(feature_label[0])):
                     input_neurode = self._network.input_nodes[i]
                     input_neurode.set_input(feature_label[0][i])
+                # Use labels as expected values for output layer
+                # neurodes and begin backpropagation process
                 for i in range(len(feature_label[1])):
                     output_neurode = self._network.output_nodes[i]
                     output_neurode.set_expected(feature_label[1][i])
@@ -351,9 +360,9 @@ class FFBPNetwork:
                                self._network.output_nodes]
                     print(f"Input{inputs} Expected{expected} Output{outputs}")
 
-            num_output_nodes = data_set.number_of_samples(NNData.Set.TRAIN) * \
+            total_output_nodes = data_set.number_of_samples(NNData.Set.TRAIN) * \
                                len(self._network.output_nodes)
-            rmse = (sq_error / num_output_nodes)**(1/2)
+            rmse = (sq_error / total_output_nodes)**(1/2)
             if (verbosity > 0) and (epoch_num % 100 == 0):
                 print(f"Epoch {epoch_num} RMSE: {rmse}")
 
@@ -376,9 +385,12 @@ class FFBPNetwork:
         while not data_set.pool_is_empty(NNData.Set.TEST):
             feature_label = data_set.get_one_item(NNData.Set.TEST)
 
+            # Use features as inputs to input layer neurodes and
+            # begin feedforward process
             for i in range(len(feature_label[0])):
                 input_neurode = self._network.input_nodes[i]
                 input_neurode.set_input(feature_label[0][i])
+            # No backpropagation in testing
             for i in range(len(feature_label[1])):
                 output_neurode = self._network.output_nodes[i]
                 error = feature_label[1][i] - output_neurode.value
@@ -390,13 +402,7 @@ class FFBPNetwork:
                        self._network.output_nodes]
             print(f"Input{inputs} Expected{expected} Output{outputs}")
 
-        num_output_nodes = data_set.number_of_samples(NNData.Set.TEST) * \
-                           len(self._network.output_nodes)
-        rmse = (sq_error / num_output_nodes)**(1/2)
+        total_output_nodes = data_set.number_of_samples(NNData.Set.TEST) * \
+                             len(self._network.output_nodes)
+        rmse = (sq_error / total_output_nodes)**(1/2)
         print(f"Final RMSE: {rmse}")
-
-
-class LayerType(Enum):
-    INPUT = 0
-    HIDDEN = 1
-    OUTPUT = 2

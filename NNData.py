@@ -49,6 +49,7 @@ class NNData:
         self._test_indices = []
         self._train_pool = deque()
         self._test_pool = deque()
+
         try:
             self.load_data(features, labels)
         except (DataMismatchError, ValueError):

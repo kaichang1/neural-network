@@ -271,7 +271,7 @@ class BPNeurode(Neurode):
             self._update_weights()
 
     def set_expected(self, expected_value: float):
-        """Set value for output layer neurode and fire upstream.
+        """Set expected value for output layer neurode and fire upstream.
 
         Expected value will be used to calculate and store the node's
         delta value.
@@ -360,3 +360,9 @@ class BPNeurode(Neurode):
 class FFBPNeurode(FFNeurode, BPNeurode):
     """Feedforward Backpropagation Neurode."""
     pass
+
+
+class LayerType(Enum):
+    INPUT = 0
+    HIDDEN = 1
+    OUTPUT = 2
