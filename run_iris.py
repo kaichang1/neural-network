@@ -81,17 +81,17 @@ iris_y = [[1, 0, 0, ], [1, 0, 0, ], [1, 0, 0, ], [1, 0, 0, ], [1, 0, 0, ], [1, 0
           [0, 0, 1, ], [0, 0, 1, ], [0, 0, 1, ]]
 
 
-def run_iris():
+def run_iris(features, labels):
     network = FFBPNetwork(4, 3)
     network.add_hidden_layer(3)
-    data = NNData(iris_x, iris_y, .7)
+    data = NNData(features, labels, .7)
 
     network.train(data, 10001, order=NNData.Order.RANDOM)
     network.test(data)
 
 
 def main():
-    run_iris()
+    run_iris(iris_x, iris_y)
 
 
 if __name__ == '__main__':
